@@ -1,15 +1,31 @@
 from django.shortcuts import render, redirect
-from django.contrib import messages
+from django.contrib import messages, auth
 from django.core.validators import validate_email
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required   # Requer o login
 
 
 def login(request):
-    return render(request, 'accounts/login.html')
+    if request.method != 'POST':
+        return render(request, 'accounts/login.html')
+
+    usuario = request.POST.get('usuario')
+    senha = request.POST.get('senha')
+
+    user = auth.authenticate(request, username=usuario, password=senha)
+
+    if not user:
+        messages.error(request, 'Usuario ou senha inválidos.')
+        return render(request, 'accounts/login.html')
+    else:
+        auth.login(request, user)
+        messages.success(request, 'Logado com sucesso!')
+        return redirect('dashboard')
 
 
 def logout(request):
-    return render(request, 'accounts/logout.html')
+    auth.logout(request)
+    return redirect('dashboard')
 
 
 def cadastro(request):
@@ -61,5 +77,8 @@ def cadastro(request):
     user = User.objects.create_user(username=usuario, email=email, password=senha, first_name=nome, last_name=sobrenome)
     return redirect('login')
 
+
+# Requer que o usuário esteja logado, caso contrário vai redirecionar o usuário para a página de login
+@login_required(redirect_field_name='login')
 def dashboard(request):
     return render(request, 'accounts/dashboard.html')
